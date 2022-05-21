@@ -89,8 +89,6 @@ async function enviarBoletosParaClientes(dadosDosBoletos: any) {
     const telefoneCliente = dadosCliente.fones[1];
     const nomeCliente = dadosCliente.nome;
 
-    await downloadFile(linkBoleto);
-
     // Enviar mensagem
     await sock
       .sendMessage(`55${telefoneCliente}@s.whatsapp.net`, {
@@ -105,15 +103,13 @@ async function enviarBoletosParaClientes(dadosDosBoletos: any) {
     await sock
       .sendMessage(`55${telefoneCliente}@s.whatsapp.net`, {
         mimetype: 'application/pdf',
-        document: { url: './temp/boleto-cliente.pdf' },
+        document: { url: linkBoleto },
         fileName: 'boleto-cliente',
       })
       .catch(async (erro: any) => {
         console.error('Error when sending file: ', erro); // return object error
         await enviarMsgParaDesenvolvedor(erro);
       });
-
-    await deleteFile('./temp/boleto-cliente.pdf');
   }
 }
 
