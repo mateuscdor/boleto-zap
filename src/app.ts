@@ -1,7 +1,12 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
+import { Boom } from '@hapi/boom';
+import makeWASocket, {
+  DisconnectReason,
+  fetchLatestBaileysVersion,
+  useSingleFileAuthState,
+} from '@adiwajshing/baileys';
 import api from './services/api';
-import startWhatsAppSock from './services/whatsapp';
 import { currentDatePlus } from './utils/dates';
 import setApiAuthHeader from './utils/setApiAuthHeader';
 import getAccessToken from './utils/getAccessToken';
@@ -33,15 +38,53 @@ api.interceptors.response.use(
 );
 
 // Create Baileys Socket instance and run program
-startWhatsAppSock().then((WAsocket) => {
-  WAsocket.ev.on('connection.update', async (update) => {
-    if (update.connection === 'open') {
+const { state, saveState } = useSingleFileAuthState('./auth_info_multi.json');
+
+// start a connection
+async function startWhatsAppSock() {
+  // fetch latest version of WA Web
+  const { version, isLatest } = await fetchLatestBaileysVersion();
+  console.log(`using WA v${version.join('.')}, isLatest: ${isLatest}`);
+
+  const WAsocket = makeWASocket({
+    version,
+    printQRInTerminal: true,
+    auth: state,
+  });
+
+  WAsocket.ev.on('connection.update', (update) => {
+    console.log('connection update', update);
+
+    const { connection, lastDisconnect } = update;
+
+    if (connection === 'close') {
+      const shouldReconnect =
+        (lastDisconnect?.error as Boom)?.output?.statusCode !==
+        DisconnectReason.loggedOut;
+
+      console.log(
+        'connection closed due to ',
+        lastDisconnect?.error,
+        ', reconnecting ',
+        shouldReconnect
+      );
+
+      if (shouldReconnect) {
+        startWhatsAppSock(); // reconnect if not logged out
+      } else {
+        console.log('Connection closed. You are logged out.');
+      }
+    } else if (connection === 'open') {
+      console.log('opened connection');
       sock = WAsocket;
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       start();
     }
   });
-});
+
+  // listen for when the auth credentials is updated
+  WAsocket.ev.on('creds.update', saveState);
+}
 
 async function getBoletosQueVenceraoDaqui(dias: number) {
   const dataVencimento = currentDatePlus(dias);
@@ -137,3 +180,5 @@ async function start() {
     await start();
   }, hoursToWait * 3600 * 1000);
 }
+
+startWhatsAppSock();

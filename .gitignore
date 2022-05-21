@@ -3,3 +3,4 @@ tokens
 temp/*.pdf
 .env
 auth_info_multi.json
+dist
