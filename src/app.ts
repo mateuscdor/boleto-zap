@@ -3,8 +3,6 @@
 import api from './services/api';
 import startWhatsAppSock from './services/whatsapp';
 import { currentDatePlus } from './utils/dates';
-import downloadFile from './utils/downloadFile';
-import deleteFile from './utils/deleteFile';
 import setApiAuthHeader from './utils/setApiAuthHeader';
 import getAccessToken from './utils/getAccessToken';
 
