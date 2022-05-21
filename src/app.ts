@@ -59,7 +59,7 @@ async function getBoletosQueVenceraoDaqui(dias: number) {
 
 async function enviarMsgParaDesenvolvedor(message: string) {
   await sock
-    .sendMessage(`55${process.env.TELEFONE_DESENVOLVEDOR}@c.us`, {
+    .sendMessage(`55${process.env.TELEFONE_DESENVOLVEDOR}@s.whatsapp.net`, {
       text: message,
     })
     .catch((err: any) => {
@@ -93,7 +93,7 @@ async function enviarBoletosParaClientes(dadosDosBoletos: any) {
 
     // Enviar mensagem
     await sock
-      .sendMessage(`55${telefoneCliente}@c.us`, {
+      .sendMessage(`55${telefoneCliente}@s.whatsapp.net`, {
         text: `Olá, ${nomeCliente}. Seu boleto vencerá ${mensagemDataVenc}.`,
       })
       .catch(async (erro: any) => {
@@ -103,7 +103,7 @@ async function enviarBoletosParaClientes(dadosDosBoletos: any) {
 
     // Enviar boleto
     await sock
-      .sendMessage(`55${telefoneCliente}@c.us`, {
+      .sendMessage(`55${telefoneCliente}@s.whatsapp.net`, {
         mimetype: 'application/pdf',
         document: { url: './temp/boleto-cliente.pdf' },
         fileName: 'boleto-cliente',
