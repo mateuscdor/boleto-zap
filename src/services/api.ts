@@ -1,4 +1,4 @@
-const axios = require('axios');
+import axios from 'axios';
 
 const url = 'https://v4.egestor.com.br/api/v1';
 
@@ -6,4 +6,4 @@ const api = axios.create({
   baseURL: url,
 });
 
-module.exports = api;
+export default api;

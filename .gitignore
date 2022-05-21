@@ -2,3 +2,4 @@ node_modules
 tokens
 temp/*.pdf
 .env
+auth_info_multi.json

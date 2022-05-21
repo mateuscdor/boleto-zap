@@ -1,12 +1,11 @@
-const util = require('util');
-const stream = require('stream');
-const fs = require('fs');
-
-const api = require('../services/api');
+import util from 'util';
+import stream from 'stream';
+import fs from 'fs';
+import api from '../services/api';
 
 const pipeline = util.promisify(stream.pipeline);
 
-async function downloadFile(fileLink) {
+async function downloadFile(fileLink: string) {
   const response = await api.get(`${fileLink}`, {
     responseType: 'stream',
   });
@@ -17,8 +16,8 @@ async function downloadFile(fileLink) {
       fs.createWriteStream('./temp/boleto-cliente.pdf')
     );
   } catch (error) {
-    console.error('error downloading file:', error.message);
+    console.error('error downloading file:', (error as Error).message);
   }
 }
 
-module.exports = downloadFile;
+export default downloadFile;

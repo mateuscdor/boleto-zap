@@ -1,5 +1,5 @@
-const { access, constants } = require('fs');
-const { unlink } = require('fs/promises');
+import { access, constants } from 'fs';
+import { unlink } from 'fs/promises';
 
 const file = 'package.json';
 
@@ -8,12 +8,15 @@ access(file, constants.F_OK, (err) => {
   console.log(`${file} ${err ? 'file does not exist' : 'file exists'}`);
 });
 
-async function deleteFile(filePath) {
+async function deleteFile(filePath: string) {
   try {
     await unlink(filePath);
   } catch (error) {
-    console.error('there was an error deleting the file:', error.message);
+    console.error(
+      'there was an error deleting the file:',
+      (error as Error).message
+    );
   }
 }
 
-module.exports = deleteFile;
+export default deleteFile;
