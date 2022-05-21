@@ -10,6 +10,7 @@ import api from './services/api';
 import { currentDatePlus } from './utils/dates';
 import setApiAuthHeader from './utils/setApiAuthHeader';
 import getAccessToken from './utils/getAccessToken';
+import deleteFile from './utils/deleteFile';
 
 require('dotenv').config();
 
@@ -52,7 +53,7 @@ async function startWhatsAppSock() {
     auth: state,
   });
 
-  WAsocket.ev.on('connection.update', (update) => {
+  WAsocket.ev.on('connection.update', async (update) => {
     console.log('connection update', update);
 
     const { connection, lastDisconnect } = update;
@@ -72,6 +73,8 @@ async function startWhatsAppSock() {
       if (shouldReconnect) {
         startWhatsAppSock(); // reconnect if not logged out
       } else {
+        // delete auth file
+        await deleteFile('./auth_info_multi.json');
         console.log('Connection closed. You are logged out.');
       }
     } else if (connection === 'open') {
