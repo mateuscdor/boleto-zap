@@ -4,7 +4,7 @@ import { Boom } from '@hapi/boom';
 import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
-  useSingleFileAuthState,
+  useMultiFileAuthState,
 } from '@adiwajshing/baileys';
 import api from './services/api';
 import { currentDatePlus } from './utils/dates';
@@ -39,10 +39,8 @@ api.interceptors.response.use(
 );
 
 // Create Baileys Socket instance and run program
-const { state, saveState } = useSingleFileAuthState('./auth_info_multi.json');
-
-// start a connection
 async function startWhatsAppSock() {
+  const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
   // fetch latest version of WA Web
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(`using WA v${version.join('.')}, isLatest: ${isLatest}`);
@@ -86,7 +84,7 @@ async function startWhatsAppSock() {
   });
 
   // listen for when the auth credentials is updated
-  WAsocket.ev.on('creds.update', saveState);
+  WAsocket.ev.on('creds.update', saveCreds);
 }
 
 async function getBoletosQueVenceraoDaqui(dias: number) {
