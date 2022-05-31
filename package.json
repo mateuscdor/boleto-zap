@@ -5,6 +5,7 @@
   "main": "src/app.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "zip": "git archive -v -o boleto-zap.zip --format=zip main",
     "dev": "ts-node src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js"
