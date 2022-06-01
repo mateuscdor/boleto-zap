@@ -1,14 +1,12 @@
-const OneDayInMilliseconds = 86400000;
+import { DateTime } from 'luxon';
 
 // GMT -03:00 (Brasilia Standard Time)
-const date = new Date(+new Date() - 3600 * 1000 * 3 + 1000);
-
-const currentDate = date.toISOString().split('T')[0];
+function currentDate() {
+  return DateTime.now().setZone('America/Sao_Paulo');
+}
 
 function currentDatePlus(days: number) {
-  return new Date(date.getTime() + OneDayInMilliseconds * days)
-    .toISOString()
-    .split('T')[0];
+  return currentDate().plus({ days }).toISODate();
 }
 
 export { currentDate, currentDatePlus };

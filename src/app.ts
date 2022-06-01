@@ -1,182 +1,54 @@
-/* eslint-disable no-await-in-loop */
-/* eslint-disable no-restricted-syntax */
-import { Boom } from '@hapi/boom';
-import makeWASocket, {
-  DisconnectReason,
-  fetchLatestBaileysVersion,
-  useMultiFileAuthState,
-} from '@adiwajshing/baileys';
-import api from './services/api';
-import { currentDatePlus } from './utils/dates';
-import setApiAuthHeader from './utils/setApiAuthHeader';
-import getAccessToken from './utils/getAccessToken';
+import { WASocket } from '@adiwajshing/baileys';
+import { getAccessToken, setApiAuthHeader } from './services/api';
+import createWhatsAppSock from './services/whatsappConnection';
+import { currentDate } from './utils/dates';
+import enviarBoletosParaClientes from './utils/enviarBoletosParaClientes';
+import enviarMsgParaDesenvolvedor from './utils/enviarMsgParaDesenvolvedor';
+import getBoletosQueVenceraoDaqui from './utils/getBoletosQueVenceraoDaqui';
 
-require('dotenv').config();
+async function start(sock: WASocket) {
+  console.log('Iniciando operações.');
+  await enviarMsgParaDesenvolvedor(sock, 'Iniciando operações.');
 
-let sock: any;
-const hoursToWait = 24; // 24 hours
-
-// Set axios interceptor
-api.interceptors.response.use(
-  (response) => response,
-  // eslint-disable-next-line consistent-return
-  async (error) => {
-    // if access token is invalid (code 401), generate new token
-    if (error.response.data.errCode === 401) {
-      const accessToken = await getAccessToken();
-      // Set api default Auth Header with new token
-      setApiAuthHeader(accessToken);
-
-      // Set originalRequest Authorization header with new token and retry request
-      const originalRequest = error.config;
-      originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-      return api.request(originalRequest);
-    }
-
-    console.error(error.response.data);
-  }
-);
-
-// Create Baileys Socket instance and run program
-async function startWhatsAppSock() {
-  const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
-  // fetch latest version of WA Web
-  const { version, isLatest } = await fetchLatestBaileysVersion();
-  console.log(`using WA v${version.join('.')}, isLatest: ${isLatest}`);
-
-  const WAsocket = makeWASocket({
-    version,
-    printQRInTerminal: true,
-    auth: state,
-  });
-
-  WAsocket.ev.on('connection.update', async (update) => {
-    console.log('connection update', update);
-
-    const { connection, lastDisconnect } = update;
-
-    if (connection === 'close') {
-      const shouldReconnect =
-        (lastDisconnect?.error as Boom)?.output?.statusCode !==
-        DisconnectReason.loggedOut;
-
-      console.log(
-        'connection closed due to ',
-        lastDisconnect?.error,
-        ', reconnecting ',
-        shouldReconnect
-      );
-
-      if (shouldReconnect) {
-        startWhatsAppSock(); // reconnect if not logged out
-      } else {
-        console.log('Connection closed. You are logged out.');
-      }
-    } else if (connection === 'open') {
-      console.log('opened connection');
-      sock = WAsocket;
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      start();
-    }
-  });
-
-  // listen for when the auth credentials is updated
-  WAsocket.ev.on('creds.update', saveCreds);
-}
-
-async function getBoletosQueVenceraoDaqui(dias: number) {
-  const dataVencimento = currentDatePlus(dias);
-
-  const response = await api.get(
-    `/boletos?situacaoBoleto=10&dtTipo=dtVenc&dtIni=${dataVencimento}&dtFim=${dataVencimento}&orderBy=dtVenc,desc`
-  );
-
-  const boletos = response.data;
-
-  return { ...boletos, diasParaVencer: dias };
-}
-
-async function enviarMsgParaDesenvolvedor(message: string) {
-  await sock
-    .sendMessage(`55${process.env.TELEFONE_DESENVOLVEDOR}@s.whatsapp.net`, {
-      text: message,
-    })
-    .catch((err: any) => {
-      console.error('Error when sending text message: ', err); // return object error
-    });
-}
-
-async function enviarBoletosParaClientes(dadosDosBoletos: any) {
-  const { diasParaVencer } = dadosDosBoletos.diasParaVencer;
-
-  let mensagemDataVenc;
-  if (diasParaVencer === 1) {
-    mensagemDataVenc = 'amanhã';
-  } else {
-    mensagemDataVenc = `daqui a ${diasParaVencer}`;
-  }
-
-  for (const element of dadosDosBoletos.data) {
-    const dadosDoBoleto = await api.get(`/boletos/${element.codigo}`);
-
-    const linkBoleto = dadosDoBoleto.data.link;
-    const codCliente = dadosDoBoleto.data.codContato;
-
-    const { data } = await api.get(`/contatos/${codCliente}`);
-
-    const dadosCliente = data;
-    const telefoneCliente = dadosCliente.fones[1];
-    const nomeCliente = dadosCliente.nome;
-
-    // Enviar mensagem
-    await sock
-      .sendMessage(`55${telefoneCliente}@s.whatsapp.net`, {
-        text: `Olá, ${nomeCliente}. Seu boleto vencerá ${mensagemDataVenc}.`,
-      })
-      .catch(async (erro: any) => {
-        console.error('Error when sending text message: ', erro); // return object error
-        await enviarMsgParaDesenvolvedor(erro);
-      });
-
-    // Enviar boleto
-    await sock
-      .sendMessage(`55${telefoneCliente}@s.whatsapp.net`, {
-        mimetype: 'application/pdf',
-        document: { url: linkBoleto },
-        fileName: 'boleto-cliente',
-      })
-      .catch(async (erro: any) => {
-        console.error('Error when sending file: ', erro); // return object error
-        await enviarMsgParaDesenvolvedor(erro);
-      });
-  }
-}
-
-async function start() {
-  // Get accessToken and set Authorization header with access_token
   console.log('Set Authorization header with access_token');
   const accessToken = await getAccessToken();
   setApiAuthHeader(accessToken);
 
-  // Get boletos em aberto que vencerão amanhã e enviar para cliente
   console.log('Buscar boletos que vencerão amanhã e enviar para cliente');
   const boletosQueVenceraoAmanha = await getBoletosQueVenceraoDaqui(1);
+  await enviarBoletosParaClientes(sock, boletosQueVenceraoAmanha);
 
-  await enviarBoletosParaClientes(boletosQueVenceraoAmanha);
-
-  // Get boletos em aberto que vencerão nos próximos 7 dias e enviar para cliente
   console.log('Buscar boletos que vencerão daqui 7 dias e enviar para cliente');
   const boletosQueVenceraoDaqui7Dias = await getBoletosQueVenceraoDaqui(7);
-  await enviarBoletosParaClientes(boletosQueVenceraoDaqui7Dias);
-  await enviarMsgParaDesenvolvedor('As operações de hoje foram concluídas.');
-  // Imprimir log dizendo que as operações do dia foram concluídas
+  await enviarBoletosParaClientes(sock, boletosQueVenceraoDaqui7Dias);
+
+  await enviarMsgParaDesenvolvedor(
+    sock,
+    'As operações de hoje foram concluídas.'
+  );
+
   console.log('As operações de hoje foram concluídas.');
   console.log('==============================================');
 
-  // Repeat the function start every 24 hours
+  const tomorrow5AM = currentDate()
+    .plus({ days: 1 })
+    .set({ hour: 5, minute: 0 });
+
+  const millisTill5AM = tomorrow5AM
+    .diffNow('milliseconds')
+    .toObject().milliseconds;
+
+  // Repeat the function start every day at 5AM GMT -03:00 (Brasilia Standard Time)
   setTimeout(async () => {
-    await start();
-  }, hoursToWait * 3600 * 1000);
+    await start(sock);
+  }, millisTill5AM);
 }
 
-startWhatsAppSock();
+// Create whatsappConnection and run program
+createWhatsAppSock()
+  .then((sock) => {
+    start(sock);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
