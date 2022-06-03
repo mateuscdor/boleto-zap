@@ -3,9 +3,39 @@
 import { WASocket } from '@adiwajshing/baileys';
 import api from '../services/api';
 import enviarMsgParaDesenvolvedor from './enviarMsgParaDesenvolvedor';
+import getBoletos from './getBoletos';
 
-async function enviarBoletosParaClientes(sock: WASocket, dadosDosBoletos: any) {
-  const { diasParaVencer } = dadosDosBoletos.diasParaVencer;
+interface Data {
+  codigo: 3;
+  codContato: 4;
+  contatoNome: string;
+  dtVenc: string;
+  dtPgto: string;
+  dtEmissao: string;
+  valor: number;
+  valorPago: number;
+  codRecebimentos: number[];
+  situacao: number;
+}
+
+interface DadosDosBoletos {
+  total: number;
+  per_page: number;
+  current_page: number;
+  last_page: number;
+  next_page_url: null;
+  prev_page_url: null;
+  from: number;
+  to: number;
+  data: Array<Data>;
+  diasParaVencer: number;
+}
+
+async function enviarBoletosParaClientes(
+  sock: WASocket,
+  dadosDosBoletos: DadosDosBoletos
+) {
+  const { diasParaVencer } = dadosDosBoletos;
 
   let mensagemDataVenc;
   if (diasParaVencer === 1) {
@@ -47,6 +77,15 @@ async function enviarBoletosParaClientes(sock: WASocket, dadosDosBoletos: any) {
         console.error('Error when sending file: ', erro); // return object error
         enviarMsgParaDesenvolvedor(sock, erro);
       });
+  }
+
+  if (dadosDosBoletos.current_page < dadosDosBoletos.last_page) {
+    const boletosParaEnviar = await getBoletos(
+      diasParaVencer,
+      dadosDosBoletos.current_page + 1
+    );
+
+    await enviarBoletosParaClientes(sock, boletosParaEnviar);
   }
 }
 

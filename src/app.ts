@@ -4,7 +4,7 @@ import createWhatsAppSock from './services/whatsappConnection';
 import { currentDate } from './utils/dates';
 import enviarBoletosParaClientes from './utils/enviarBoletosParaClientes';
 import enviarMsgParaDesenvolvedor from './utils/enviarMsgParaDesenvolvedor';
-import getBoletosQueVenceraoDaqui from './utils/getBoletosQueVenceraoDaqui';
+import getBoletos from './utils/getBoletos';
 
 async function start(sock: WASocket) {
   console.log('Iniciando operações.');
@@ -15,11 +15,11 @@ async function start(sock: WASocket) {
   setApiAuthHeader(accessToken);
 
   console.log('Buscar boletos que vencerão amanhã e enviar para cliente');
-  const boletosQueVenceraoAmanha = await getBoletosQueVenceraoDaqui(1);
+  const boletosQueVenceraoAmanha = await getBoletos(1, 1);
   await enviarBoletosParaClientes(sock, boletosQueVenceraoAmanha);
 
   console.log('Buscar boletos que vencerão daqui 7 dias e enviar para cliente');
-  const boletosQueVenceraoDaqui7Dias = await getBoletosQueVenceraoDaqui(7);
+  const boletosQueVenceraoDaqui7Dias = await getBoletos(7, 1);
   await enviarBoletosParaClientes(sock, boletosQueVenceraoDaqui7Dias);
 
   await enviarMsgParaDesenvolvedor(
