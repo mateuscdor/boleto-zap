@@ -53,7 +53,7 @@ async function enviarBoletosParaClientes(
     const { data } = await api.get(`/contatos/${codCliente}`);
 
     const dadosCliente = data;
-    const telefoneCliente = dadosCliente.fones[1];
+    const telefoneCliente = dadosCliente.fones[0];
     const nomeCliente = dadosCliente.nome;
 
     // Enviar mensagem
