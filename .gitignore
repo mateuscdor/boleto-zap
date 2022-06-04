@@ -3,3 +3,8 @@ tokens
 .env
 auth_info_multi.json
 baileys_auth_info
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
