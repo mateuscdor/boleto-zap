@@ -42,7 +42,7 @@ async function enviarBoletosParaClientes(
   if (diasParaVencer === 1) {
     mensagemDataVenc = 'amanhã';
   } else {
-    mensagemDataVenc = `daqui a ${diasParaVencer}`;
+    mensagemDataVenc = `daqui a ${diasParaVencer} dias`;
   }
 
   for (const element of dadosDosBoletos.data) {
