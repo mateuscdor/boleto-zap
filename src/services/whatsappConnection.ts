@@ -23,7 +23,7 @@ async function startWhatsAppSock() {
   sock.ev.on('creds.update', saveCreds);
 
   return new Promise<WASocket>((resolve) => {
-    sock.ev.on('connection.update', async (update) => {
+    sock.ev.on('connection.update', (update) => {
       console.log('connection update', update);
 
       const { connection, lastDisconnect } = update;
