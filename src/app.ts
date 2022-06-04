@@ -1,6 +1,6 @@
 import { WASocket } from '@adiwajshing/baileys';
 import { getAccessToken, setApiAuthHeader } from './services/api';
-import createWhatsAppSock from './services/whatsappConnection';
+import startWhatsAppSock from './services/whatsappConnection';
 import { currentDate } from './utils/dates';
 import enviarBoletosParaClientes from './utils/enviarBoletosParaClientes';
 import enviarMsgParaDesenvolvedor from './utils/enviarMsgParaDesenvolvedor';
@@ -45,10 +45,9 @@ async function start(sock: WASocket) {
 }
 
 // Create whatsappConnection and run program
-createWhatsAppSock()
-  .then((sock) => {
-    start(sock);
-  })
-  .catch((error) => {
-    console.error(error);
-  });
+async function createSocketAndRunProgram() {
+  const sock = await startWhatsAppSock(); // Use `await` here, `.then` will not work
+  start(sock);
+}
+
+createSocketAndRunProgram();

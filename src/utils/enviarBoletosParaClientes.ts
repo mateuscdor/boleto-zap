@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
 import { WASocket } from '@adiwajshing/baileys';
+import parsePhoneNumber from 'libphonenumber-js';
 import api from '../services/api';
 import enviarMsgParaDesenvolvedor from './enviarMsgParaDesenvolvedor';
 import getBoletos from './getBoletos';
@@ -45,38 +46,46 @@ async function enviarBoletosParaClientes(
   }
 
   for (const element of dadosDosBoletos.data) {
-    const dadosDoBoleto = await api.get(`/boletos/${element.codigo}`);
+    const dadosBoleto = await api.get(`/boletos/${element.codigo}`);
+    const linkBoleto = dadosBoleto.data.link;
+    const codCliente = dadosBoleto.data.codContato;
 
-    const linkBoleto = dadosDoBoleto.data.link;
-    const codCliente = dadosDoBoleto.data.codContato;
+    const dadosCliente = await api.get(`/contatos/${codCliente}`);
+    const nomeCliente = dadosCliente.data.nome;
+    const telefoneCliente = dadosCliente.data.fones[0];
 
-    const { data } = await api.get(`/contatos/${codCliente}`);
+    const telefoneClienteParsedProperties = parsePhoneNumber(
+      telefoneCliente,
+      'BR'
+    );
 
-    const dadosCliente = data;
-    const telefoneCliente = dadosCliente.fones[0];
-    const nomeCliente = dadosCliente.nome;
+    if (telefoneClienteParsedProperties) {
+      // Remove o caractere '+' do inicio do numero
+      const telefoneClienteValidado =
+        telefoneClienteParsedProperties.number.replace('+', '');
 
-    // Enviar mensagem
-    sock
-      .sendMessage(`55${telefoneCliente}@s.whatsapp.net`, {
-        text: `Olá, ${nomeCliente}. Seu boleto vencerá ${mensagemDataVenc}.`,
-      })
-      .catch(async (erro: any) => {
-        console.error('Error when sending text message: ', erro); // return object error
-        await enviarMsgParaDesenvolvedor(sock, erro);
-      });
+      // Enviar mensagem
+      try {
+        await sock.sendMessage(`${telefoneClienteValidado}@s.whatsapp.net`, {
+          text: `Olá, ${nomeCliente}. Seu boleto vencerá ${mensagemDataVenc}.`,
+        });
+      } catch (error: any) {
+        console.error('Error when text message: ', error); // return object error
+        await enviarMsgParaDesenvolvedor(sock, error);
+      }
 
-    // Enviar boleto
-    sock
-      .sendMessage(`55${telefoneCliente}@s.whatsapp.net`, {
-        mimetype: 'application/pdf',
-        document: { url: linkBoleto },
-        fileName: 'boleto-cliente',
-      })
-      .catch(async (erro: any) => {
-        console.error('Error when sending file: ', erro); // return object error
-        enviarMsgParaDesenvolvedor(sock, erro);
-      });
+      // Enviar boleto
+      try {
+        await sock.sendMessage(`${telefoneClienteValidado}@s.whatsapp.net`, {
+          mimetype: 'application/pdf',
+          document: { url: linkBoleto },
+          fileName: 'boleto-cliente',
+        });
+      } catch (error: any) {
+        console.error('Error when sending file: ', error); // return object error
+        await enviarMsgParaDesenvolvedor(sock, error);
+      }
+    }
   }
 
   if (dadosDosBoletos.current_page < dadosDosBoletos.last_page) {
