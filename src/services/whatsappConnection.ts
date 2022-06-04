@@ -23,7 +23,7 @@ async function startWhatsAppSock() {
   sock.ev.on('creds.update', saveCreds);
 
   return new Promise<WASocket>((resolve) => {
-    sock.ev.on('connection.update', (update) => {
+    sock.ev.on('connection.update', async (update) => {
       console.log('connection update', update);
 
       const { connection, lastDisconnect } = update;
@@ -41,13 +41,13 @@ async function startWhatsAppSock() {
         );
 
         if (shouldReconnect) {
-          startWhatsAppSock(); // reconnect if not logged out
+          const newSock = await startWhatsAppSock(); // reconnect if not logged out
+          resolve(newSock);
         } else {
           console.log('Connection closed. You are logged out.');
         }
       } else if (connection === 'open') {
         console.log('opened connection');
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         resolve(sock);
       }
     });
