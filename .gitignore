@@ -3,6 +3,7 @@ tokens
 .env
 auth_info_multi.json
 baileys_auth_info
+*.zip
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
